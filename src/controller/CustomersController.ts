@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
-import { CustomersService } from '../service/CustomersService';
+import { CustomersService, PaginatedResult } from '../service/CustomersService';
 import { Customer } from '../domain/Customer';
 
 export class CustomersController {
@@ -9,11 +9,16 @@ export class CustomersController {
     if (!event.queryStringParameters?.name) {
       return this.apiResponseBadRequestError();
     }
-    const { name } = event.queryStringParameters;
+    const { name, lastName, gender, page } = event.queryStringParameters;
 
-    return this.apiResponseOk(
-      await this.service.findByFilter(new Customer({ name }))
-    );
+    const customer = new Customer({
+      name,
+      lastName,
+      gender,
+      page: page ? Number(page) : 1,
+    });
+
+    return this.apiResponseOk(await this.service.findByFilter(customer));
   }
 
   apiResponseBadRequestError() {
@@ -23,7 +28,7 @@ export class CustomersController {
     };
   }
 
-  apiResponseOk(customers: Customer[]) {
+  apiResponseOk(customers: Customer[] | PaginatedResult<Customer>) {
     return {
       statusCode: 200,
       isBase64Encoded: false,
